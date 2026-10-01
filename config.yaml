@@ -1,0 +1,11 @@
+# تنظیمات کل پروژه. هر عدد مهم اینجاست تا در کد hard-code نشه.
+data:
+  base_url: "https://apiv2.nobitex.ir"
+  endpoint: "/market/udf/history"
+  symbol: "BTCUSDT"
+  resolution: "60"        # دقیقه؛ 60 = کندل ۱ ساعته
+  months: 6               # طول داده تاریخی
+  chunk_days: 30          # هر درخواست چند روز بگیرد (اگر API محدودیت داد، کمترش کن)
+  sleep_between_requests: 0.5
+  raw_path: "data/raw/btcusdt_1h_raw.csv"
+  clean_path: "data/processed/btcusdt_1h_clean.csv"
