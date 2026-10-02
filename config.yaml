@@ -1,11 +1,21 @@
-# تنظیمات کل پروژه. هر عدد مهم اینجاست تا در کد hard-code نشه.
+# Project-wide settings. Every important number lives here, not hard-coded.
 data:
   base_url: "https://apiv2.nobitex.ir"
   endpoint: "/market/udf/history"
   symbol: "BTCUSDT"
-  resolution: "60"        # دقیقه؛ 60 = کندل ۱ ساعته
-  months: 6               # طول داده تاریخی
-  chunk_days: 30          # هر درخواست چند روز بگیرد (اگر API محدودیت داد، کمترش کن)
+  resolution: "60"        # minutes; 60 = 1-hour candles
+  months: 6               # length of historical data
+  chunk_days: 15          # days per request (the API returns ~500 candles max per request, so 15 days of 1h candles fits)
   sleep_between_requests: 0.5
   raw_path: "data/raw/btcusdt_1h_raw.csv"
   clean_path: "data/processed/btcusdt_1h_clean.csv"
+
+simulation:
+  initial_capital: 10000      # USDT, per simulated trader
+  fee_rate: 0.001             # per side, as a fraction of notional (0.1%)
+  liquidation_buffer: 0.9     # position is liquidated after a loss of 90% of its margin
+  seed: 42                    # reproducibility of the random trader
+  min_trades_per_trader: 100
+  trades_path: "data/processed/trades.csv"
+  summary_path: "results/trader_summary.csv"
+  equity_plot_path: "results/trader_equity_curves.png"
