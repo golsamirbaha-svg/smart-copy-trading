@@ -67,18 +67,18 @@ results/               tables and figures
   (real crashes/spikes).
 
 ### 3.2 Simulated traders (`src/traders.py`)
-| Trader | Behaviour | Leverage | Size (of equity) | Stop / TP |
-|---|---|---|---|---|
-| `conservative` | mean reversion: fades z-score > 1.5 vs 48h average | 1x | 20% | 1.5% / 2% |
-| `trend_follower` | EMA 8 / EMA 24, follows the sign of the spread | 2x | 30% | 3% / - |
-| `high_risk` | 24h Donchian breakout | 8x | 40% | 5% / - |
-| `random_noise` | random entries and exits (no-skill baseline) | 2x | 20% | 3% / - |
-| `swing_momentum` | trades 12h return > 1.2% in the direction of the EMA-100 trend | 3x | 30% | 2.5% / 6% |
+| Trader | Behaviour | Leverage | Size (of equity) | Stop / TP | Trades | Return (full period) |
+|---|---|---|---|---|---|---|
+| `conservative` | mean reversion: fades z-score > 1.5 vs 48h average | 1x | 20% | 1.5% / 2% | 217 | -7.9% |
+| `trend_follower` | EMA 8 / EMA 24, follows the sign of the spread | 2x | 30% | 3% / - | 157 | -1.3% |
+| `high_risk` | 24h Donchian breakout | 8x | 40% | 5% / - | 111 | -49.7% |
+| `random_noise` | random entries and exits (no-skill baseline) | 2x | 20% | 3% / - | 137 | +7.0% |
+| `swing_momentum` | trades 12h return > 1.2% in the direction of the EMA-100 trend | 3x | 30% | 2.5% / 6% | 140 | -20.0% |
 
 Execution model (same for every trader): decision on a **closed** candle, fill at the **next open**;
 stop/take-profit/liquidation checked intrabar with high/low (stop wins if both are touched in one candle);
 gap-through fills at the open; a trade can never lose more than its margin; fee 0.1% per side.
-The program warns if a trader has fewer than 100 trades (`results/trader_summary.csv`).
+The program warns if a trader has fewer than 100 trades (all five have at least 111 here; see `results/trader_summary.csv`).
 
 ### 3.3 Trader evaluation (`src/evaluation.py`)
 Metrics on realized (closed-trade) equity: **Return, Win Rate, Maximum Drawdown, Volatility, Sharpe**
@@ -141,50 +141,81 @@ supplies timing and direction.
 
 ## 5. Results (real data: BTC/USDT 1h, Nobitex)
 
+Data: 4,384 hourly candles, 2026-04-03 22:30 UTC to 2026-10-03 13:30 UTC, no missing candles
+(downloaded on 2026-10-03).
 Periods: warm-up 2026-04-03 -> 05-03, **train** 05-03 -> 08-03, **test** 08-03 -> 10-03.
-Smart parameters tuned on train only: `min_trader_score = 0.5`, `target_daily_risk = 0.005`.
+Smart parameters tuned on train only: `min_trader_score = 0.5`, `target_daily_risk = 0.01`.
 Initial capital 10,000 USDT, fee 0.1% per side, slippage 0.05%, delay 1 hour.
+
+### Trader evaluation (full period, descriptive only, never used for decisions)
+| Rank | Trader | Trades | Return | Max drawdown | Sharpe | Score |
+|---|---|---|---|---|---|---|
+| 1 | `random_noise` | 137 | +7.0% | 4.6% | 1.43 | 0.79 |
+| 2 | `trend_follower` | 157 | -1.3% | 9.4% | 0.02 | 0.56 |
+| 3 | `conservative` | 217 | -7.9% | 9.0% | -2.84 | 0.42 |
+| 4 | `swing_momentum` | 140 | -20.0% | 23.0% | -1.51 | 0.27 |
+| 5 | `high_risk` | 111 | -49.7% | 65.5% | -0.61 | 0.16 |
 
 ### Test period (final result)
 | Strategy | Return | Sharpe | Max drawdown | Volatility | Win rate | Trades | Avg leverage | Fees (USDT) | Final equity |
 |---|---|---|---|---|---|---|---|---|---|
-| Naive copy | +1.5% | 0.44 | 11.1% | 31.7% | 32.5% | 243 | 0.68 | 863 | 10,155 |
-| **Smart copy** | -6.9% | -4.11 | 8.1% | 10.2% | 24.6% | 126 | 0.21 | 362 | 9,308 |
-| Smart (untuned, default params) | -13.1% | -6.62 | 13.5% | 12.3% | 31.6% | 190 | 0.44 | 787 | 8,692 |
-| Buy & hold BTC (reference) | +34.7% | 4.43 | 7.7% | 41.5% | - | 1 | - | 0 | 13,468 |
+| Naive copy | +1.4% | 0.41 | 11.0% | 31.5% | 33.7% | 243 | 0.68 | 861 | 10,140 |
+| **Smart copy** | -9.2% | -3.27 | 11.8% | 16.8% | 27.7% | 141 | 0.35 | 600 | 9,085 |
+| Smart (untuned, default params) | -12.3% | -6.22 | 12.3% | 12.3% | 33.2% | 190 | 0.44 | 791 | 8,773 |
+| Buy & hold BTC (reference) | +35.3% | 4.50 | 7.7% | 41.5% | - | 1 | - | 0 | 13,533 |
 
 ### Train period (used for tuning, so optimistic for Smart)
 | Strategy | Return | Sharpe | Max drawdown | Volatility | Win rate | Trades | Avg leverage | Fees (USDT) | Final equity |
 |---|---|---|---|---|---|---|---|---|---|
-| Naive copy | -14.6% | -2.13 | 20.9% | 27.3% | 37.6% | 367 | 0.76 | 1,319 | 8,544 |
-| Smart copy | -4.7% | -3.86 | 5.3% | 4.9% | 39.3% | 117 | 0.14 | 333 | 9,531 |
-| Buy & hold BTC (reference) | -20.3% | -2.48 | 29.5% | 33.6% | - | 1 | - | 0 | 7,972 |
+| Naive copy | -13.7% | -2.00 | 20.0% | 27.0% | 37.5% | 365 | 0.76 | 1,319 | 8,633 |
+| Smart copy | -6.4% | -3.22 | 7.7% | 8.0% | 38.2% | 144 | 0.25 | 617 | 9,358 |
+| Buy & hold BTC (reference) | -20.5% | -2.51 | 29.5% | 33.6% | - | 1 | - | 0 | 7,948 |
 
 Equity curves: `results/equity_curves.png` (full tables: `results/backtest_comparison.md`).
 
 ![Equity curves](results/equity_curves.png)
 
 ### Honest reading of the result
-- On the test period **Smart did not beat Naive on return or Sharpe**. It did what a risk filter should
-  do on risk: lower drawdown (8.1% vs 11.1%), about one third of the volatility, fewer trades and fees.
-  In the (falling) train period it also lost less than Naive.
+- On the test period **Smart did not beat Naive**: -9.2% vs +1.4% return and Sharpe -3.27 vs 0.41.
+  What Smart did achieve is lower activity and exposure: about half the volatility (16.8% vs 31.5%),
+  about half the average leverage (0.35 vs 0.68), fewer trades (141 vs 243) and fewer fees.
+  Its maximum drawdown was **not** lower on test (11.8% vs 11.0%). In the falling train period it lost
+  less than Naive (-6.4% vs -13.7%, drawdown 7.7% vs 20.0%), but train is where its parameters were tuned.
+- **Tuning was not stable.** Even the best of the 12 train candidates had a negative Sharpe (-3.22), so
+  "best" only means "least bad". Re-downloading the data a few hours later shifted the window and changed
+  the chosen `target_daily_risk` from 0.005 to 0.01.
 - Diagnostics (`--step diagnostics`):
   - The rolling score was **not a stable predictor**: Spearman correlation between a trader's score and
-    its next-7-day return was +0.22 on train and -0.13 on test (only 5 traders and overlapping windows,
-    so neither number is statistically strong).
-  - Naive's test profit came almost entirely from `high_risk` (+223 USDT of +155 total). Smart skips that
-    trader because its 8x leverage exceeds the 5x limit, which was costly in a strongly rising market.
-  - Smart's largest loss came from `conservative` (-388 USDT, 23 trades, 22% win rate).
+    its next-7-day return was +0.28 on train but -0.06 on test (top-scored minus bottom-scored trader:
+    +3.1% on train, -4.2% on test). With only 5 traders and overlapping windows neither number is
+    statistically strong.
+  - Naive's test profit came almost entirely from `high_risk` (+208 USDT of a +140 total). Smart did not
+    copy a single `high_risk` trade in the test period. The skip log contains no `excessive_leverage`
+    entries, so those trades were removed by an earlier rule (most likely `low_score`), not by the
+    leverage cap.
+  - All four traders Smart did copy lost money in the test period: `conservative` -503 USDT (23 trades,
+    22% win rate; Naive's 70 trades of the same trader won 40%), `trend_follower` -211, `random_noise`
+    -114, `swing_momentum` -87.
+  - For 88 of Smart's 141 copied trades (62%) the 25% position cap decided the size, so in practice
+    "smart sizing" was close to a fixed 25% position much of the time.
 - Design weakness: the score rewards low exposure (small positions mean low volatility and low drawdown)
-  even without skill; the no-skill `random_noise` trader had the highest score (0.80) at the end of the data.
+  even without skill. The no-skill `random_noise` trader got the highest full-period score (0.79) and was
+  the only trader with a positive return.
 - No parameter or rule was changed after seeing test results.
 
 ### Robustness (fee / slippage / delay, test period)
-Tables: `results/robustness.md` and `results/robustness.csv`; figure: `results/robustness.png`.
+Full tables: `results/robustness.md` and `results/robustness.csv`; figure: `results/robustness.png`.
 
 ![Robustness](results/robustness.png)
 
-_Key takeaways: to be added after running `python main.py --step robustness`._
+Sensitivity (change in total return, mildest to harshest value of each sweep):
+- **Slippage 0% -> 0.5%:** Naive -36.7 percentage points, Smart -24.3 percentage points.
+- **Execution delay 0 -> 6 candles:** Naive +4.7, Smart +7.0 percentage points. A longer delay did not hurt
+  in this window; with only two months of data this should be read as noise, not as a benefit of delay.
+- Naive trades about 1.7x as often as Smart (243 vs 141), pays more in fees (861 vs 600 USDT) and loses
+  more when slippage rises. This is the one consistent advantage of Smart: lower sensitivity to
+  trading costs, not higher returns.
+- Fee sweep (0% to 0.3% per side): see `results/robustness.md`.
 
 ## 6. Assumptions and limitations
 - Traders are simulated rule-based strategies, not real traders; they have no guaranteed persistent skill.
@@ -197,6 +228,7 @@ _Key takeaways: to be added after running `python main.py --step robustness`._
 - The test period is only about two months of a mostly rising market and covers a single asset;
   the result is one sample, not proof that either strategy is better in general.
 - Only 5 traders: score-quality statistics are weak.
+- The reported numbers come from one download of the data (2026-10-03); the dataset used is committed in the repository.
 
 ## 7. Possible improvements (not done, to avoid tuning on test data)
 - Normalize the score by the trader's exposure/risk so low-exposure traders are not rewarded for it.
