@@ -19,3 +19,61 @@ simulation:
   trades_path: "data/processed/trades.csv"
   summary_path: "results/trader_summary.csv"
   equity_plot_path: "results/trader_equity_curves.png"
+
+evaluation:
+  window_days: 60                  # rolling window used for scores (past data only)
+  min_trades_full_confidence: 30   # fewer closed trades in the window -> score shrinks toward 0.5
+  periods_per_year: 365            # crypto trades 24/7, so daily returns are annualised with 365
+  max_drawdown_limit: 0.30         # drawdown at or above this gives a drawdown component of 0
+  volatility_cap: 1.0              # annualised volatility at or above this gives a component of 0
+  return_scale: 0.05               # window return of +5% maps to a return component of ~0.73
+  weights:                         # must sum to 1
+    sharpe: 0.35
+    max_drawdown: 0.25
+    total_return: 0.15
+    volatility: 0.15
+    win_rate: 0.10
+  scores_path: "data/processed/trader_scores.csv"
+  metrics_path: "results/trader_metrics.csv"
+  scores_plot_path: "results/trader_scores.png"
+
+copy:
+  execution_delay_candles: 1       # copier acts this many candles after the trader (1 = one hour later)
+  min_trader_score: 0.40           # skip trades of traders whose rolling score is below this
+  min_trades_in_window: 10         # skip traders with too little recent history
+  max_trade_leverage: 5            # skip trades opened with a higher leverage than this
+  max_vol_ratio: 3.0               # skip when current volatility is this many times its normal level
+  min_confidence: 0.15             # skip when the final confidence is below this
+  target_daily_risk: 0.01          # volatility targeting: 1-sigma daily move of a full-confidence trade = 1% of equity
+  vol_window: 24                   # candles used for current volatility
+  vol_baseline_window: 720         # candles used for "normal" volatility (30 days of 1h candles)
+  vol_baseline_min_periods: 168    # minimum candles before the baseline is available (7 days)
+  decisions_path: "data/processed/copy_decisions.csv"
+  decisions_summary_path: "results/copy_decisions_summary.csv"
+
+risk:
+  max_position_frac: 0.25            # one copied position: notional <= 25% of current equity
+  max_trader_allocation_frac: 0.40   # all open positions copied from one trader: notional <= 40% of equity
+  max_leverage: 2.0                  # portfolio leverage: total open notional <= 2x equity
+  max_drawdown: 0.20                 # stop copying when equity falls 20% below its peak
+  drawdown_cooldown_days: 7          # copying stays halted this long, then resumes (peak is reset)
+  flatten_on_halt: true              # also close all open copied positions when the halt triggers
+  min_notional: 10                   # USDT; smaller positions are not opened
+  risk_replay_path: "data/processed/risk_replay.csv"
+  risk_summary_path: "results/risk_summary.csv"
+
+backtest:
+  fee_rate: 0.001                  # per side, fraction of notional (copier's own trades)
+  slippage_rate: 0.0005            # adverse price move on every fill (0.05%)
+  warmup_days: 30                  # nothing is copied here; scores and volatility baselines build up
+  train_fraction: 0.6              # after warm-up: first 60% = train (tuning), last 40% = test (final)
+  tuning_min_trades: 20            # a tuning candidate needs at least this many copied trades
+  tuning_grid:                     # tuned on the TRAIN period only
+    min_trader_score: [0.35, 0.40, 0.45, 0.50]
+    target_daily_risk: [0.005, 0.01, 0.02]
+  results_path: "results/backtest_comparison.csv"
+  results_md_path: "results/backtest_comparison.md"
+  tuning_path: "results/tuning_grid_train.csv"
+  trades_path: "data/processed/backtest_trades_test.csv"
+  decisions_path: "data/processed/backtest_decisions_test.csv"
+  equity_plot_path: "results/equity_curves.png"
