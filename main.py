@@ -2,18 +2,21 @@ import argparse
 import logging
 
 from src.backtest import build_backtest
+from src.check import check_deliverables
 from src.copy_engine import build_decisions
 from src.data_loader import build_dataset
 from src.diagnostics import build_diagnostics
 from src.evaluation import build_evaluation
 from src.risk import build_risk_replay
+from src.robustness import build_robustness
 from src.traders import build_trader_dataset
 
 
 def main():
     parser = argparse.ArgumentParser(description="Smart Copy Trading prototype")
-    parser.add_argument("--step", default="data", choices=["data", "traders", "evaluate", "engine", "risk", "backtest", "diagnostics"],
-                        help="which step to run (more steps will be added)")
+    parser.add_argument("--step", default="data", choices=["data", "traders", "evaluate", "engine", "risk", "backtest", "diagnostics", "robustness", "check"],
+                        help="pipeline step to run (data -> traders -> evaluate -> engine/risk -> backtest -> diagnostics/robustness); "
+                             "'check' verifies that all deliverables exist before you push")
     parser.add_argument("--config", default="config.yaml")
     args = parser.parse_args()
 
@@ -33,6 +36,10 @@ def main():
         build_backtest(args.config)
     elif args.step == "diagnostics":
         build_diagnostics(args.config)
+    elif args.step == "robustness":
+        build_robustness(args.config)
+    elif args.step == "check":
+        check_deliverables(args.config)
 
 
 if __name__ == "__main__":
